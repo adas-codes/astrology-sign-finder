@@ -3,7 +3,11 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Astrology Sign Finder</title>
+    <title>Zodiac Systems Finder</title>
+    <meta
+      name="description"
+      content="Analyze a birth date across Western, Vedic, True Sidereal, Chinese, BaZi, Tibetan, Mayan, Aztec, Native American, Celtic, Egyptian, and Burmese zodiac systems."
+    />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
@@ -13,18 +17,26 @@
     <div class="page-shell">
       <div class="app-card">
         <header class="header">
-          <p class="eyebrow">Astrology Compare</p>
-          <h1>Find Your Sign</h1>
+          <p class="eyebrow">Astrology Atlas</p>
+          <h1>Find Your Zodiac Sign</h1>
           <p class="subtitle">
-            Enter your date of birth to compare your sign across the most common
-            zodiac systems.
+            Enter your date of birth in DD/MM/YYYY format to compare your sign across 12 zodiac systems.
           </p>
         </header>
 
-        <form id="dob-form" class="dob-form">
+        <form id="dob-form" class="dob-form" novalidate>
           <label for="dob">Date of birth</label>
           <div class="input-row">
-            <input type="date" id="dob" name="dob" required />
+            <input
+              type="text"
+              id="dob"
+              name="dob"
+              placeholder="DD/MM/YYYY"
+              inputmode="numeric"
+              autocomplete="bday"
+              aria-label="Date of birth in DD/MM/YYYY format"
+              required
+            />
             <button type="submit">Submit</button>
           </div>
         </form>
@@ -32,39 +44,12 @@
         <section id="results" class="results hidden" aria-live="polite">
           <div class="result-overview">
             <div>
-              <p class="label">Your birth date</p>
+              <p class="label">Birth date</p>
               <h2 id="birth-date-display">—</h2>
             </div>
           </div>
 
-          <div class="sign-grid">
-            <article class="sign-card western-card">
-              <div class="card-header">
-                <span class="badge">Western</span>
-                <h3 id="western-name">—</h3>
-              </div>
-              <p id="western-date-range" class="date-range">—</p>
-              <p id="western-description" class="description">—</p>
-            </article>
-
-            <article class="sign-card vedic-card">
-              <div class="card-header">
-                <span class="badge">Vedic</span>
-                <h3 id="vedic-name">—</h3>
-              </div>
-              <p id="vedic-date-range" class="date-range">—</p>
-              <p id="vedic-description" class="description">—</p>
-            </article>
-
-            <article class="sign-card pagan-card">
-              <div class="card-header">
-                <span class="badge">Pagan</span>
-                <h3 id="pagan-name">—</h3>
-              </div>
-              <p id="pagan-date-range" class="date-range">—</p>
-              <p id="pagan-description" class="description">—</p>
-            </article>
-          </div>
+          <div id="result-grid" class="result-grid"></div>
         </section>
       </div>
     </div>
