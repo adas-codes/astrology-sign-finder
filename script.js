@@ -62,13 +62,30 @@ const form = document.getElementById('dob-form');
 form.addEventListener('submit', (event) => {
   event.preventDefault();
 
-  const dobValue = document.getElementById('dob').value;
-  if (!dobValue) {
-    alert('Please choose a date of birth.');
+  const dobValue = document.getElementById('dob').value.trim();
+  const dateParts = dobValue.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+  if (!dateParts) {
+    alert('Please enter a valid date of birth in DD/MM/YYYY format.');
     return;
   }
 
-  const birthDate = new Date(`${dobValue}T12:00:00`);
+  const [, dayText, monthText, yearText] = dateParts;
+  const day = Number(dayText);
+  const month = Number(monthText);
+  const year = Number(yearText);
+  const birthDate = new Date(0);
+  birthDate.setHours(12, 0, 0, 0);
+  birthDate.setFullYear(year, month - 1, day);
+
+  if (
+    birthDate.getFullYear() !== year ||
+    birthDate.getMonth() !== month - 1 ||
+    birthDate.getDate() !== day
+  ) {
+    alert('Please enter a valid date of birth in DD/MM/YYYY format.');
+    return;
+  }
+
   const westernSlip = findSign(birthDate, westernSigns);
   const vedicSlip = findSign(birthDate, vedicSigns);
   const paganSlip = findSign(birthDate, paganSigns);
