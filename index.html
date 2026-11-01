@@ -10,48 +10,95 @@
     />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600;700&family=DM+Sans:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
     <link rel="stylesheet" href="style.css" />
   </head>
   <body>
+    <a class="skip-link" href="#birth-form">Skip to birth date form</a>
     <div class="page-shell">
-      <div class="app-card">
+      <nav class="site-nav glass-panel" aria-label="Main navigation">
+        <a class="brand" href="#" aria-label="Celestial Atlas home">
+          <span class="brand-mark" aria-hidden="true">✦</span>
+          <span>CELESTIAL <span class="brand-light">ATLAS</span></span>
+        </a>
+        <a class="nav-link" href="#birth-form">Explore your chart <span aria-hidden="true">↗</span></a>
+      </nav>
+
+      <main class="app-card glass-panel">
         <header class="header">
-          <p class="eyebrow">Astrology Atlas</p>
-          <h1>Find Your Zodiac Sign</h1>
+          <div class="hero-orbit" aria-hidden="true">
+            <span class="orbit orbit-one"></span>
+            <span class="orbit orbit-two"></span>
+            <span class="orbit-core">✧</span>
+            <span class="orbit-star star-one">✦</span>
+            <span class="orbit-star star-two">✧</span>
+            <span class="orbit-star star-three">·</span>
+          </div>
+          <p class="eyebrow"><span class="eyebrow-rule"></span> A FIELD GUIDE TO THE COSMOS <span class="eyebrow-rule"></span></p>
+          <h1>Read the <em>stars</em><br />written in your story.</h1>
           <p class="subtitle">
-            Enter your date of birth in DD/MM/YYYY format to compare your sign across 12 zodiac systems.
+            One birth date. Twelve traditions. Discover the celestial maps that have guided cultures across time.
           </p>
+          <div class="hero-note">
+            <span aria-hidden="true">☾</span>
+            <span>A personal journey through ancient skies</span>
+            <span aria-hidden="true">✦</span>
+          </div>
         </header>
 
-        <form id="dob-form" class="dob-form" novalidate>
-          <label for="dob">Date of birth</label>
-          <div class="input-row">
-            <input
-              type="text"
-              id="dob"
-              name="dob"
-              placeholder="DD/MM/YYYY"
-              inputmode="numeric"
-              autocomplete="bday"
-              aria-label="Date of birth in DD/MM/YYYY format"
-              required
-            />
-            <button type="submit">Submit</button>
-          </div>
-        </form>
-
-        <section id="results" class="results hidden" aria-live="polite">
-          <div class="result-overview">
+        <section class="birth-panel glass-panel" aria-labelledby="birth-prompt">
+          <div class="panel-heading">
+            <span class="panel-index">01</span>
             <div>
-              <p class="label">Birth date</p>
-              <h2 id="birth-date-display">—</h2>
+              <p class="panel-kicker">BEGIN YOUR EXPLORATION</p>
+              <h2 id="birth-prompt">When did your story begin?</h2>
             </div>
           </div>
+          <form id="dob-form" class="dob-form" novalidate>
+            <label for="dob">Your date of birth</label>
+            <div class="input-row" id="birth-form">
+              <div class="date-input-wrap">
+                <span class="input-icon" aria-hidden="true">◷</span>
+                <input
+                  type="text"
+                  id="dob"
+                  name="dob"
+                  placeholder="DD/MM/YYYY"
+                  inputmode="numeric"
+                  autocomplete="bday"
+                  aria-label="Date of birth in DD/MM/YYYY format"
+                  required
+                />
+              </div>
+              <button type="submit"><span>Reveal my signs</span><span class="button-arrow" aria-hidden="true">↗</span></button>
+            </div>
+            <p class="form-hint"><span aria-hidden="true">✧</span> Enter your date in day / month / year format</p>
+          </form>
+        </section>
 
+        <section id="results" class="results hidden" aria-live="polite">
+          <div class="traditions-heading" id="traditions">
+            <div>
+              <p class="section-kicker">A SKY FULL OF PERSPECTIVES</p>
+              <h2>Explore the traditions</h2>
+            </div>
+            <span class="traditions-count">12 SYSTEMS <span aria-hidden="true">✦</span></span>
+          </div>
+          <div class="result-overview glass-panel">
+            <div class="overview-symbol" aria-hidden="true">☾</div>
+            <div>
+              <p class="label">YOUR CELESTIAL PROFILE</p>
+              <h2 id="birth-date-display">—</h2>
+            </div>
+            <span class="overview-note">A reading across twelve traditions</span>
+          </div>
           <div id="result-grid" class="result-grid">
             <article class="zodiac-card western">
               <div class="card-header">
+                <span class="card-glyph" aria-hidden="true">☉</span>
                 <h3 class="system-name">Western Tropical Zodiac</h3>
                 <span class="system-badge">Western</span>
               </div>
@@ -62,6 +109,7 @@
 
             <article class="zodiac-card vedic">
               <div class="card-header">
+                <span class="card-glyph" aria-hidden="true">☽</span>
                 <h3 class="system-name">Vedic Sidereal Zodiac</h3>
                 <span class="system-badge">Vedic</span>
               </div>
@@ -72,6 +120,7 @@
 
             <article class="zodiac-card true-sidereal">
               <div class="card-header">
+                <span class="card-glyph" aria-hidden="true">✧</span>
                 <h3 class="system-name">True Sidereal / Astronomical Zodiac</h3>
                 <span class="system-badge">Astronomical</span>
               </div>
@@ -82,6 +131,7 @@
 
             <article class="zodiac-card chinese">
               <div class="card-header">
+                <span class="card-glyph" aria-hidden="true">☯</span>
                 <h3 class="system-name">Chinese Zodiac</h3>
                 <span class="system-badge">East Asian</span>
               </div>
@@ -92,6 +142,7 @@
 
             <article class="zodiac-card bazi">
               <div class="card-header">
+                <span class="card-glyph" aria-hidden="true">⌘</span>
                 <h3 class="system-name">BaZi (Four Pillars)</h3>
                 <span class="system-badge">Chinese</span>
               </div>
@@ -102,6 +153,7 @@
 
             <article class="zodiac-card tibetan">
               <div class="card-header">
+                <span class="card-glyph" aria-hidden="true">༄</span>
                 <h3 class="system-name">Tibetan Zodiac</h3>
                 <span class="system-badge">Tibetan</span>
               </div>
@@ -112,6 +164,7 @@
 
             <article class="zodiac-card mayan">
               <div class="card-header">
+                <span class="card-glyph" aria-hidden="true">◈</span>
                 <h3 class="system-name">Mayan Tzolkʼin</h3>
                 <span class="system-badge">Mesoamerican</span>
               </div>
@@ -122,6 +175,7 @@
 
             <article class="zodiac-card aztec">
               <div class="card-header">
+                <span class="card-glyph" aria-hidden="true">◉</span>
                 <h3 class="system-name">Aztec Tonalpohualli</h3>
                 <span class="system-badge">Mesoamerican</span>
               </div>
@@ -132,6 +186,7 @@
 
             <article class="zodiac-card native">
               <div class="card-header">
+                <span class="card-glyph" aria-hidden="true">⌁</span>
                 <h3 class="system-name">Native American Earth Astrology</h3>
                 <span class="system-badge">Earth tradition</span>
               </div>
@@ -142,6 +197,7 @@
 
             <article class="zodiac-card celtic">
               <div class="card-header">
+                <span class="card-glyph" aria-hidden="true">♧</span>
                 <h3 class="system-name">Celtic Tree Zodiac</h3>
                 <span class="system-badge">Celtic</span>
               </div>
@@ -152,6 +208,7 @@
 
             <article class="zodiac-card egyptian">
               <div class="card-header">
+                <span class="card-glyph" aria-hidden="true">☥</span>
                 <h3 class="system-name">Ancient Egyptian Decan System</h3>
                 <span class="system-badge">Ancient</span>
               </div>
@@ -162,6 +219,7 @@
 
             <article class="zodiac-card burmese">
               <div class="card-header">
+                <span class="card-glyph" aria-hidden="true">☼</span>
                 <h3 class="system-name">Burmese Zodiac / Mahabote</h3>
                 <span class="system-badge">Southeast Asian</span>
               </div>
@@ -171,7 +229,11 @@
             </article>
           </div>
         </section>
-      </div>
+        <footer class="site-footer">
+          <span>AN ATLAS OF CELESTIAL TRADITIONS</span>
+          <span>Traditions, not predictions <span aria-hidden="true">·</span> For reflection and discovery</span>
+        </footer>
+      </main>
     </div>
 
     <script src="script.js"></script>
