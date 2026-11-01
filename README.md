@@ -53,12 +53,12 @@ set +a
 mvn -f backend/pom.xml spring-boot:run
 ```
 
-The API starts on port 8081 by default. Flyway applies versioned migrations from `backend/src/main/resources/db/migration` on startup.
+The API starts on port 8080 by default (override with `SERVER_PORT`). Flyway applies versioned migrations from `backend/src/main/resources/db/migration` on startup.
 
 Check the health endpoint:
 
 ```bash
-curl http://localhost:8081/api/health
+curl http://localhost:8080/api/health
 ```
 
 Example response:
