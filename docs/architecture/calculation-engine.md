@@ -55,57 +55,71 @@ interpretation text.
 ### Calculation flow
 
 1. Parse and validate the JSON request and ISO date/time values.
-2. Resolve known system IDs and reject unknown IDs at the API boundary.
+2. Resolve known system/method/version selections and reject unknown
+   combinations at the API boundary.
 3. Normalize only explicit input. Preserve the local civil date/time, named
    timezone, location provenance, and accuracy rather than coercing input to
    UTC prematurely.
-4. For each requested system, independently compare the profile with that
-   system's declared requirements.
-5. Return `INSUFFICIENT_INPUT` or `UNSUPPORTED` without invoking a calculator
+4. For each requested `{systemId, methodId, methodologyVersion}` tuple,
+   resolve exactly one registry entry. Never choose a materially different
+   method or latest version implicitly.
+5. Compare the profile with that method version's declared requirements.
+6. Return `INSUFFICIENT_INPUT` or `UNSUPPORTED` without invoking a calculator
    when requirements or implementation are unavailable.
-6. Invoke each supported calculator through the common contract. A system
+7. Invoke each supported calculator through the common contract. A system
    failure is isolated to that result; it must not cause another system to
    return a plausible-looking default.
-7. Attach the calculator's status, completeness, methodology identifier and
+8. Attach the calculator's status, completeness, method ID and
    version, warnings, and limitations; enrich with separately sourced
    knowledge where available.
-8. Return a calculation response. Do not persist the birth profile or result
+9. Return a calculation response. Do not persist the birth profile or result
    unless a later, explicit saved-profile feature is designed and consented to.
 
 ## Calculator contract (conceptual; no Java types are created here)
 
 `AstrologySystemCalculator` is a useful conceptual port. It should define:
 
-- A stable `systemId` and a discoverable descriptor.
-- `InputRequirements`: required and optional fields, supported date ranges,
-  calendar/timezone/location needs, and precision/accuracy policy.
+- A stable `systemId`, `methodId`, and `methodologyVersion`. The registry
+  resolves the full tuple to a calculator and immutable method configuration.
+- A discoverable system descriptor listing its methods. Each method-version
+  descriptor declares required and optional inputs, precision requirements,
+  calendar conventions, timezone and location/coordinate requirements,
+  supported date range, deployment implementation status, and known
+  limitations.
+- Method-specific `InputRequirements` and validation. Requirements belong to
+  the method version, not just the system: two methods under one system may
+  have different inputs and conventions.
 - Input validation that returns structured validation issues rather than
   throwing for expected missing or invalid data.
-- Calculation execution over a validated/normalized profile and a
-  calculation context (methodology configuration, ephemeris/calendar provider,
-  and reproducibility inputs).
+- Calculation execution over a validated/normalized profile and a calculation
+  context (selected method ID/version, ephemeris/calendar provider, and
+  reproducibility inputs).
 - A normalized result containing a stable classification ID, display label
   (or a knowledge reference), optional structured values, status,
-  completeness, methodology/version, warnings, and limitations.
+  completeness, selected system/method/version, warnings, and limitations.
 - Explicit failure mapping. Unexpected exceptions become
   `CALCULATION_ERROR` for that system, with a correlation identifier and safe
   public message; internal logs retain diagnostic context without birth data.
 
 The orchestration layer depends on this port and registry only. New systems
-are registered by adding their descriptor and module implementation, not by
-changing orchestration branching. System-specific date/calendar logic remains
-within that module or a shared, well-defined infrastructure adapter.
+or methods are registered by adding their descriptors and module
+implementation, not by changing orchestration branching. System-specific
+date/calendar logic remains within that module or a shared, well-defined
+infrastructure adapter. A method version is immutable; behavior changes
+require a new version.
 
 ## Status and completeness model
 
-Every requested system produces one result entry, including failures.
+Every requested system/method/version selection produces one result entry,
+including failures. A request may select more than one method for a system
+when the client explicitly wants a comparison.
 
 | `status` | Meaning |
 |---|---|
 | `SUCCESS` | A result was calculated under the declared method. It may still be partial; see `completeness`. |
 | `INSUFFICIENT_INPUT` | The request is structurally valid but omits an input the system requires. |
 | `UNSUPPORTED` | The system is known but has no enabled implementation for this deployment or requested method. |
-| `INVALID_INPUT` | The profile or a system-specific value violates a domain constraint. Malformed request shape/date is normally an HTTP 400 before orchestration. |
+| `INVALID_INPUT` | A schema-valid request contains a value rejected by the selected method's domain rules (for example, a date outside that method's supported range). Malformed shape or generally invalid profile fields are top-level HTTP 400 errors instead. |
 | `CALCULATION_ERROR` | A calculator/provider failed unexpectedly or could not produce a result. Never substitute a default classification. |
 
 `completeness` is separate: `COMPLETE`, `PARTIAL`, or `NONE`. `SUCCESS` with
@@ -115,35 +129,70 @@ feature needs time). Include warnings that explain omissions. A failed result
 has `NONE`; no output classification should be emitted for a status other than
 `SUCCESS`.
 
-The registry's deployment status (for example `NOT_IMPLEMENTED`,
-`EXPERIMENTAL`, `AVAILABLE`) is not the same as a request's calculation
-status. Do not report the current browser-only logic as an available backend
-calculator.
+Malformed request/profile structure and invalid common birth fields are
+top-level HTTP validation errors. `INVALID_INPUT` is a per-result status only
+after common validation succeeds, when a selected method rejects a
+schema-valid value under its own domain constraints (such as its supported
+date range). A missing method-required input is `INSUFFICIENT_INPUT`, not
+`INVALID_INPUT`; a known catalogued but disabled/unimplemented method is
+`UNSUPPORTED`.
+
+The deployment implementation status (for example `NOT_IMPLEMENTED`,
+`EXPERIMENTAL`, `AVAILABLE`, `DISABLED`) belongs to a system/method descriptor
+and is not the same as an individual request's calculation status. A system
+may contain methods with different deployment statuses; the system-level
+status is only a catalog summary. A known, catalogued method version that is
+not enabled returns an individual `UNSUPPORTED` result. Do not report the
+current browser-only logic as an available backend calculator.
 
 ## Birth profile policy
 
 The canonical API representation is described in
-[`api-contract.md`](./api-contract.md). A date is required. Time, birthplace,
-timezone, and time accuracy are optional fields, but a calculator may require
-some of them.
+[`api-contract.md`](./api-contract.md). A civil date is required. Time,
+birthplace, timezone, time accuracy, and time uncertainty are optional profile
+fields; requirements are declared separately for each method version.
 
 - Use `LocalDate`-equivalent semantics for ISO `YYYY-MM-DD`; it is a civil
   calendar date, not an instant.
 - Use a local ISO time (`HH:mm[:ss]`) only together with an explicit IANA
   timezone for instant-sensitive calculations. Do not treat a bare local time
   as UTC or server time.
+- Civil-date methods whose declared calendar uses the supplied civil date
+  directly (for example, a selected fixed civil-date mapping) require no
+  timezone and must not consult the server's default timezone.
+- Astronomical methods require an instant or an explicit interval of possible
+  instants. A time without a timezone does not define either; never replace a
+  missing timezone with UTC, server timezone, or a timezone inferred from a
+  birthplace label.
 - Timezone may be supplied independently of the place. A place name alone
   does not resolve uniquely to coordinates or a timezone.
 - Place is a user-provided label and, when needed, explicitly provided
   latitude/longitude/elevation. Do not geocode implicitly or fabricate
   coordinates from a place string.
-- If time or timezone is absent, do not assume midnight, noon, or the server's
-  timezone. A date-only method can proceed; an instant-sensitive module returns
-  `INSUFFICIENT_INPUT`, or a documented partial interval result if it truly
-  supports one.
+- A genuinely civil-date-based method can proceed from the date alone. An
+  astronomical method with no time may return a qualified partial result only
+  if it evaluates the full civil-date interval under an explicitly declared
+  timezone/calendar interpretation and all possible instants produce the same
+  classification. If it cannot define that interval without a timezone, or
+  the interval crosses a result boundary and the method cannot represent
+  ambiguity, return `INSUFFICIENT_INPUT`.
 - `timeAccuracy` is `EXACT`, `APPROXIMATE`, or `UNKNOWN`. It describes the
-  time-of-birth value, not algorithm precision. `UNKNOWN` is the default when
-  a time is not given; it does not mean midnight.
+  reported time, not algorithm precision. When `APPROXIMATE`, require a
+  positive bounded `timeUncertaintyMinutes`; the API contract defines the
+  bound. `EXACT` means no additional uncertainty was reported at the supplied
+  representation precision; it does not mean infinite precision or a
+  zero-error astronomical input. `UNKNOWN` means no defensible time interval
+  is known and does not mean midnight.
+- For an approximate time, evaluate the interval centered on the supplied
+  instant after resolving the supplied local time with the explicit timezone
+  and its applicable time-zone rules; uncertainty minutes are elapsed minutes,
+  not wall-clock arithmetic across a daylight-saving transition. If the
+  uncertainty interval crosses a calendar or
+  astronomical boundary, return a documented `PARTIAL` result only if the
+  selected method supports multiple/ambiguous classifications or a
+  method-defined uncertainty result; otherwise return `INSUFFICIENT_INPUT`.
+  Never select one side silently. Record interval handling and time-zone data
+  version for reproducibility.
 - Keep original local inputs and the normalization method available for
   reproducibility. Avoid logging or retaining them by default.
 

@@ -9,14 +9,15 @@ runtime behavior.
 |---|---|---|
 | A-01 | Use a modular monolith in the existing Spring Boot application. Do not split by tradition into services. | One deployable unit is sufficient; module boundaries still isolate methods and allow independent tests. |
 | A-02 | Keep Birth Profile, Calculation, Knowledge, and API responsibilities distinct. | Prevent interpretation content from becoming calculation logic and prevent transport concerns from leaking into domain rules. |
-| A-03 | Register one independent calculator per system/method, behind a common contract. | A new system should not require orchestration changes or depend on another tradition's algorithm. |
-| A-04 | Use explicit statuses and a separate completeness field. Never use a default sign when no range matches. | The prototype's fallback hides missing coverage; status and completeness expose real uncertainty and partial results. |
-| A-05 | Require ISO date in API and use explicit IANA timezone for instant-sensitive calculations. No implicit midnight/noon, server zone, geocoding, or coordinates. | Prevents server-local behavior and false precision. |
-| A-06 | Version methodology independently from calculator software and knowledge content. | Reproducibility requires identifying assumptions and data, not merely an application version. |
+| A-03 | Resolve an independent calculator by the explicit tuple `systemId`, `methodId`, and `methodologyVersion`, behind a common contract. | A system can offer materially different approaches. A new method should not require orchestration changes or depend on another tradition's algorithm; the API must not select a method/version silently. |
+| A-04 | Use explicit statuses and a separate completeness field. Never use a default sign when no range matches. Distinguish top-level request validation errors from per-method outcomes. | The prototype's fallback hides missing coverage; status and completeness expose real uncertainty and partial results without conflating invalid requests with domain rejection by one method. |
+| A-05 | Require ISO date in API. A genuinely civil-date method may not require a timezone; instant-sensitive methods require an explicit IANA timezone. Never substitute UTC, server zone, inferred timezone, midnight/noon, geocoded place, or invented coordinates. | Prevents server-local behavior and false precision while allowing timezone-independent civil-day methods. |
+| A-06 | Version methodology independently from calculator software and knowledge content; expose supported methods and their versioned requirements in catalog descriptors. | Reproducibility requires identifying assumptions and data, not merely an application version. Each method version may have different input requirements. |
 | A-07 | Do not persist anonymous birth profiles/calculations by default. Curated catalog and knowledge may be persisted or versioned static data. | Birth date/time/place are sensitive personal data; calculation is cheap to recompute and no account feature exists yet. |
 | A-08 | Do not select an ephemeris library until required methods, precision, supported historical range, licensing and packaging are approved. | Swiss Ephemeris is dual-licensed (AGPL or commercial terms); Astronomy Engine is MIT but has distinct model/precision tradeoffs. |
 | A-09 | Ship the 12 current entries as known catalog entries, but initially mark all backend calculators `NOT_IMPLEMENTED`. | Current browser formulas are not backend support and some are demonstrably incomplete or methodologically unspecified. |
 | A-10 | Separate historical/traditional methods from modern popular reconstructions in system metadata and user-facing language. | Prevents modern date tables from acquiring unsupported historical authority. |
+| A-11 | For `timeAccuracy: APPROXIMATE`, require a positive bounded `timeUncertaintyMinutes` and evaluate the full interval against method boundaries. | A label alone does not quantify the uncertainty; a boundary-crossing interval must not be collapsed to a fabricated point result. |
 
 ## Open decisions before implementation
 
@@ -72,8 +73,11 @@ runtime behavior.
 ### M1.3 — Resolve methods and contract
 
 - Answer the method/scope questions above for a small first slice.
-- Publish stable system IDs, descriptors, input requirements, statuses,
-  methodology IDs, and error semantics.
+- Publish stable system IDs, method IDs and immutable methodology versions;
+  expose per-version inputs, precision, calendar, timezone, location, date
+  range, status, limitations, and error semantics.
+- Confirm the `timeUncertaintyMinutes` bound and user-facing behavior when an
+  approximate interval crosses a classification boundary.
 - Decide which catalog content is versioned seed data versus PostgreSQL-managed
   knowledge.
 - Define privacy and retention policy before accepting real birthplace data.
@@ -82,10 +86,13 @@ runtime behavior.
 
 - Add package/module boundaries for profile, calculation, knowledge, and API in
   the current application, preserving the modular monolith.
-- Add contract types and registry, validation, status mapping, and test
-  fixtures; do not add one giant switch or fallback.
+- Add contract types and tuple-based registry resolution, validation, status
+  mapping, and test fixtures; do not add one giant switch, implicit
+  methodology selection, or fallback.
 - Seed descriptors as `NOT_IMPLEMENTED`; add API contract tests for unknown
-  IDs, missing inputs, unsupported systems, partial results, and errors.
+  system/method/version combinations, missing inputs, unsupported method
+  versions, partial results, invalid method-domain inputs, and top-level
+  request errors.
 - Do not create profile/result persistence unless the product decision requires
   it.
 
@@ -95,7 +102,8 @@ runtime behavior.
   references. Prefer a date-only calendar method only if its calendar source
   and correlation are resolved; otherwise choose a precisely specified
   Western solar calculation.
-- Add boundary, leap-year, timezone, invalid-input, and reproducibility tests.
+- Add boundary, leap-year, timezone, uncertainty-interval, invalid-input, and
+  reproducibility tests.
 - Compare astronomical results to independent references when applicable.
 - Mark the system `AVAILABLE` only when its input/limitation metadata and
   test/source evidence ship with it.
