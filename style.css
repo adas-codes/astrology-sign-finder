@@ -955,3 +955,243 @@ button:hover .button-arrow {
     transition-duration: 0.01ms !important;
   }
 }
+
+.dob-form {
+  margin: 0;
+}
+
+.form-fields {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+  margin-left: 2.85rem;
+}
+
+.field {
+  position: relative;
+  min-width: 0;
+}
+
+.place-field {
+  grid-column: 1 / -1;
+}
+
+.field label {
+  display: block;
+  margin-bottom: 0.5rem;
+  color: #c8c3d7;
+  font-size: 0.76rem;
+  font-weight: 500;
+}
+
+.field input {
+  width: 100%;
+  min-height: 52px;
+  padding: 0.8rem 0.9rem;
+  border: 1px solid rgba(213, 203, 240, 0.17);
+  border-radius: 12px;
+  outline: 0;
+  background: rgba(10, 10, 25, 0.47);
+  color: var(--ink);
+  color-scheme: dark;
+  font: 500 0.9rem var(--sans);
+}
+
+.field input:focus-visible {
+  border-color: rgba(201, 184, 255, 0.72);
+  box-shadow: 0 0 0 3px rgba(177, 150, 236, 0.14);
+}
+
+.form-fields + button {
+  margin: 1rem 0 0 2.85rem;
+}
+
+button:disabled {
+  cursor: wait;
+  filter: saturate(0.55);
+  opacity: 0.75;
+}
+
+.form-hint,
+.privacy-notice,
+.field-help {
+  display: block;
+  color: #938da5;
+  font-size: 0.68rem;
+  line-height: 1.55;
+}
+
+.form-hint,
+.privacy-notice {
+  margin: 0.75rem 0 0 2.85rem;
+}
+
+.privacy-notice {
+  max-width: 47rem;
+  color: #aaa4ba;
+}
+
+.field-help {
+  margin-top: 0.35rem;
+}
+
+.form-message {
+  min-height: 1.25rem;
+  margin: 0.5rem 0 0 2.85rem;
+  color: #c6b8eb;
+  font-size: 0.76rem;
+}
+
+.form-message.error {
+  color: #ffaaa8;
+}
+
+.place-suggestions {
+  position: absolute;
+  z-index: 5;
+  top: calc(100% - 1.5rem);
+  right: 0;
+  left: 0;
+  max-height: 240px;
+  overflow: auto;
+  border: 1px solid rgba(213, 203, 240, 0.2);
+  border-radius: 12px;
+  background: #19172c;
+  box-shadow: 0 14px 36px rgba(0, 0, 0, 0.35);
+}
+
+.place-option {
+  width: 100%;
+  min-height: auto;
+  justify-content: flex-start;
+  padding: 0.8rem 1rem;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  color: #e8e1f4;
+  font: 500 0.8rem var(--sans);
+  text-align: left;
+}
+
+.place-option:hover {
+  transform: none;
+  background: rgba(202, 185, 245, 0.1);
+}
+
+.house-chart {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.7rem;
+  margin-bottom: 1rem;
+}
+
+.house-cell {
+  min-height: 112px;
+  padding: 0.85rem;
+  border: 1px solid rgba(219, 209, 246, 0.12);
+  border-radius: 14px;
+  background: rgba(20, 19, 42, 0.7);
+}
+
+.house-cell.lagna-house {
+  border-color: rgba(215, 189, 133, 0.48);
+  background: linear-gradient(145deg, rgba(215, 189, 133, 0.1), rgba(20, 19, 42, 0.7));
+}
+
+.house-cell-heading {
+  color: #d7c6ff;
+  font-size: 0.72rem;
+  font-weight: 700;
+}
+
+.house-cell p {
+  margin: 0.65rem 0 0;
+  color: #f3edff;
+  font-family: var(--serif);
+  font-size: 1rem;
+}
+
+.positions-panel {
+  padding: 1.1rem;
+  border-radius: 16px;
+}
+
+.positions-heading {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 0.7rem;
+}
+
+.positions-heading h3 {
+  margin: 0;
+  color: #f3edff;
+  font-family: var(--serif);
+  font-size: 1.55rem;
+  font-weight: 500;
+}
+
+.positions-heading span {
+  color: #aaa4ba;
+  font-size: 0.67rem;
+}
+
+.table-wrap {
+  overflow-x: auto;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  color: #e8e1f4;
+  font-size: 0.75rem;
+  text-align: left;
+}
+
+th,
+td {
+  padding: 0.65rem 0.55rem;
+  border-bottom: 1px solid rgba(219, 209, 246, 0.1);
+  white-space: nowrap;
+}
+
+th {
+  color: #b8add2;
+  font-size: 0.63rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+@media (max-width: 600px) {
+  .form-fields,
+  .form-hint,
+  .privacy-notice,
+  .form-message {
+    margin-left: 0;
+  }
+
+  .form-fields {
+    grid-template-columns: 1fr;
+  }
+
+  .place-field {
+    grid-column: auto;
+  }
+
+  .form-fields + button {
+    width: 100%;
+    margin-left: 0;
+  }
+
+  .house-chart {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .positions-heading {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 0.25rem;
+  }
+}

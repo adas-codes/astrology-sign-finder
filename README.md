@@ -1,98 +1,117 @@
-# Astrology Zodiac Finder
+# Vedic Birth Chart
 
-A static, browser-based astrology exploration app with a Spring Boot API foundation and PostgreSQL database. The frontend remains usable on its own; its current zodiac calculations run locally in `script.js`.
+A Vedic-only natal chart application. It calculates a D1 / Rāśi chart from a
+birth date, exact local birth time, and searchable birthplace. The baseline is
+Lahiri ayanāṃśa, sidereal geocentric positions, whole-sign houses, the mean
+lunar node, Lagna, and the nine grahas with sign, house, nakshatra, and pada.
+Dashas and divisional charts are not included.
 
-## Prerequisites
+Calculations use the official Swiss Ephemeris `swetest` executable and its
+ephemeris data files. Planetary positions are never approximated in the
+browser. Birth details and results are processed in memory and are not saved.
+The application does not log request bodies or place-query values.
+
+## Requirements
 
 - Java 21
-- Maven 3.6.3 or later
-- Docker Engine with Docker Compose v2
-- A modern web browser
+- Maven 3.6.3+
+- Python 3 (for serving the static frontend)
+- An official Swiss Ephemeris `swetest` binary and matching ephemeris data
+- A Google Maps Platform API key with Geocoding API and Time Zone API enabled
+  for birthplace search and historical local-time-zone resolution
 
-## Frontend
+The engine and provider are deployment dependencies, not bundled sample
+services. Without their configuration, corresponding API requests return
+explicit `503` errors; no sample or fallback chart/place data is returned.
 
-The frontend has no build step or backend dependency. From the project root, run:
+## Configure and run
+
+Set these variables in the backend process environment:
+
+```bash
+export SWISSEPH_EXECUTABLE=/absolute/path/to/swetest
+export SWISSEPH_EPHEMERIS_PATH=/absolute/path/to/swiss-ephemeris-data
+export LOCATION_PROVIDER=google-maps
+export GOOGLE_MAPS_API_KEY=your-deployment-managed-key
+export CORS_ALLOWED_ORIGINS=http://localhost:8000
+```
+
+Keep the API key in deployment secret management; do not commit it. The API
+key must be restricted to the required Google APIs and deployment origins as
+appropriate. The location provider is disabled unless `LOCATION_PROVIDER` is
+explicitly set. The Swiss Ephemeris binary and data directory are also
+mandatory at chart-calculation time.
+
+Start the backend:
+
+```bash
+mvn -f backend/pom.xml spring-boot:run
+```
+
+Serve the frontend in another shell:
 
 ```bash
 python -m http.server 8000
 ```
 
-Open [http://localhost:8000](http://localhost:8000). The page and its existing date validation and zodiac calculations continue to work if the API or database is not running.
+Open [http://localhost:8000](http://localhost:8000). The default API URL is
+`http://localhost:8080/api/v1`; deployments can change the `api-base-url` meta
+value in `index.html`. Check `GET http://localhost:8080/api/health` for service
+health.
 
-## PostgreSQL and environment
+## Provider privacy and terms
 
-Copy the development environment template and edit it as needed:
+Birthplace searches are sent to the configured Google Maps Platform Geocoding
+API. When calculating a chart, the selected place ID is resolved by that
+provider; its coordinates and the birth date (represented as noon UTC) are
+sent to the Google Time Zone API to resolve the IANA time zone. The exact
+birth time is resolved locally and is not sent to Google. The UI discloses
+these transfers before submission. Operators must review and comply with the
+provider's current terms, billing, retention, and privacy requirements and
+provide any additional privacy notice/consent required for their deployment.
+No public Nominatim endpoint or undisclosed geocoder is used.
 
-```bash
-cp .env.example .env
-```
+## Calculation contract
 
-The example values are for local development only. Do not use them in a production environment. `.env` is ignored by Git. Configure `POSTGRES_DB`, `DB_USERNAME`, `DB_PASSWORD`, `POSTGRES_PORT`, `SERVER_PORT`, and `CORS_ALLOWED_ORIGINS` in `.env` to suit your local setup. The PostgreSQL user and password are required; there are no database credential defaults in Docker Compose.
+- Birth input: ISO Gregorian `dateOfBirth`, exact local `timeOfBirth` to
+  seconds, and a selected provider `placeId`.
+- `GET /api/v1/places?query=...` searches for a birthplace.
+- `POST /api/v1/charts` resolves the selected place/time zone, rejects
+  nonexistent or ambiguous daylight-saving local times, then calculates the
+  chart.
+- Swiss Ephemeris sidereal mode `1` is Lahiri; the engine is invoked with
+  Swiss Ephemeris mode and mean lunar node. Ketu is placed opposite mean Rahu.
+- The engine supplies the sidereal ascendant and planetary positions. Whole
+  sign houses, sign labels, and 27 nakshatra / four-pada segments are derived
+  deterministically from those positions.
+- The D1 response contains the Lagna, Sun, Moon, Mercury, Venus, Mars,
+  Jupiter, Saturn, Rahu, and Ketu. No dasha, divisional chart, interpretation,
+  or alternate astrological system is produced.
 
-Start PostgreSQL from the project root:
+See [API contract](docs/architecture/api-contract.md),
+[calculation engine](docs/architecture/calculation-engine.md), and
+[methodology](docs/architecture/system-methodology-matrix.md) for detailed
+rules and limitations.
 
-```bash
-docker compose up -d postgres
-docker compose ps
-```
+## Validation
 
-The service exposes PostgreSQL on `POSTGRES_PORT` (5432 by default), uses a named persistent volume, and includes a readiness health check. Stop the service without deleting its data with:
-
-```bash
-docker compose down
-```
-
-## Backend
-
-After PostgreSQL reports healthy, start the API from the project root. Export the environment in `.env` to the current shell before launching Maven:
-
-```bash
-set -a
-. ./.env
-set +a
-mvn -f backend/pom.xml spring-boot:run
-```
-
-The API starts on port 8080 by default (override with `SERVER_PORT`). Flyway applies versioned migrations from `backend/src/main/resources/db/migration` on startup.
-
-Check the health endpoint:
-
-```bash
-curl http://localhost:8080/api/health
-```
-
-Example response:
-
-```json
-{
-  "status": "UP",
-  "applicationName": "astrology-sign-finder",
-  "version": "0.1.0-SNAPSHOT"
-}
-```
-
-For browser-based local development, CORS allows the common localhost origins on ports 5500 and 8000. Override `CORS_ALLOWED_ORIGINS` with a comma-separated origin list if your frontend server uses a different address.
-
-Run backend tests with:
+Run backend tests:
 
 ```bash
 mvn -f backend/pom.xml test
 ```
 
-## Architecture
+Tests cover chart structure, nakshatra/pada and whole-sign boundaries,
+daylight-saving gaps/overlaps, API validation/error behavior, and Swiss
+Ephemeris output parsing. An actual production chart requires the external
+official binary/data and provider configuration described above.
 
-The backend is a Maven-based Spring Boot 3 application targeting Java 21 under `com.astrology`:
+## License
 
-- `controller` — HTTP endpoints
-- `service` — application-level behavior
-- `repository` — persistence access (reserved for domain repositories)
-- `entity` — persistence models (reserved until domain scope is defined)
-- `dto` — API request and response types
-- `config` — application and CORS configuration
-- `exception` — structured global API error handling
-
-Spring Web, Spring Data JPA, Spring Boot Validation, PostgreSQL, and Flyway are configured. The initial migration establishes the `astrology` schema; domain tables are intentionally not introduced yet. Hibernate schema generation is disabled in favor of versioned Flyway migrations.
-
-## Existing zodiac systems
-
-The frontend currently displays Western Tropical, Vedic Sidereal, True Sidereal/Astronomical, Chinese, BaZi, Tibetan, Mayan, Aztec, Native American Earth, Celtic Tree, Ancient Egyptian Decan, and Burmese classifications. These calculations are informational/interpretive and remain frontend-only for this foundation.
+This project is licensed under the GNU Affero General Public License,
+version 3 or (at your option) any later version; see [`LICENSE`](LICENSE).
+Swiss Ephemeris is dual-licensed by Astrodienst under AGPL or a paid
+professional license. This project selects the AGPL-compatible path and does
+not assume or require a commercial license. Obtain the engine and ephemeris
+data from the official Swiss Ephemeris distribution and comply with its
+applicable AGPL and distribution notices. The engine is not bundled here.

@@ -1,0 +1,9 @@
+Swiss Ephemeris
+
+Swiss Ephemeris is copyright Astrodienst AG and its authors. It is available
+under the GNU Affero General Public License or a paid professional license.
+This project chooses the AGPL-compatible path; no commercial license is
+assumed. This repository does not bundle the Swiss Ephemeris executable or
+ephemeris data. Deployments must obtain the official engine/data distribution
+and comply with the applicable license and notices:
+https://www.astro.com/swisseph/

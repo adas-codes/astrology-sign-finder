@@ -1,276 +1,93 @@
-# Calculation engine architecture
+# Vedic calculation engine
 
-## Status and scope
+## Implemented scope
 
-This document describes a proposed modular monolith. It does not describe code
-that has already been implemented. The current backend is a Spring Boot 3.5.6 /
-Java 21 application with a health endpoint, shared error response, CORS
-configuration, and a Flyway-created `astrology` schema. The browser still owns
-all birth-date calculations. No calculation modules, profile domain, or
-calculation API are implemented today.
+The application is a stateless Spring Boot 3 / Java 21 service with one
+versioned calculation API. It calculates only the Vedic D1 / Rāśi natal chart:
 
-The existing UI and behavior are documented in the root `README.md`; the
-current algorithms are in `script.js`. The current frontend submits only a
-date formatted as `DD/MM/YYYY`, then computes all 12 displayed results locally.
+- Lahiri ayanāṃśa (Swiss Ephemeris sidereal mode `1`).
+- Sidereal geocentric longitudes from the official Swiss Ephemeris engine.
+- Mean lunar node for Rahu; Ketu is its antipode.
+- Sidereal ascendant (Lagna) from the Swiss Ephemeris house calculation.
+- Twelve whole-sign houses, plus signs and 27 nakshatra / four-pada segments.
+- Sun, Moon, Mercury, Venus, Mars, Jupiter, Saturn, Rahu, and Ketu.
 
-## Proposed modular monolith
+Dashas, divisional charts, interpretation, and other astrology systems are
+not implemented. Birth records and calculation results are not persisted.
+There is no database in the runtime architecture.
 
-Keep one deployable Spring Boot application and one PostgreSQL database. Divide
-the application by domain responsibility, not by deployment or technical
-layer. Modules should expose narrow application-facing ports; one tradition's
-calculator must not import or call another tradition's calculator.
+## Calculation flow
 
-```mermaid
-flowchart LR
-  Browser[Browser client] --> API[API layer]
-  API --> App[Calculation application orchestration]
-  App --> Profile[Birth Profile domain]
-  App --> Registry[System registry]
-  App --> Calc[Calculation domain]
-  Calc --> W[Independent system calculators]
-  W --> Astro[Optional astronomy / calendar adapters]
-  App --> Knowledge[Knowledge domain]
-  Registry --> Knowledge
-  App --> DB[(PostgreSQL)]
-  Knowledge --> DB
-  Astro -. versioned external data / library .-> Calc
-```
+1. Validate ISO Gregorian date, local wall time to seconds, and a selected
+   provider place ID.
+2. Resolve the place and coordinates using the explicitly configured
+   `PlaceProvider`.
+3. Resolve its IANA timezone using the birth date and reject DST gaps or
+   overlaps rather than selecting an offset silently.
+4. Convert the single valid local time to an instant and invoke
+   `SwissEphemerisEngine`.
+5. The adapter starts the configured official `swetest` executable with
+   explicit Swiss Ephemeris mode, Lahiri sidereal mode, mean node, and
+   location/house arguments. It parses actual engine output; missing output,
+   process failures, timeouts, missing executable, and missing data are errors.
+6. Normalize longitudes into `[0°, 360°)`. Divide the zodiac into 12 equal
+   30-degree signs. Calculate house number as
+   `((pointSign - lagnaSign + 12) mod 12) + 1`.
+7. Divide the sidereal zodiac into 27 equal segments of 13°20′ and each
+   nakshatra into four equal padas of 3°20′.
+8. Return D1 data and method metadata. No plausible-looking substitute is
+   emitted for a failed provider or engine call.
 
-### Domain responsibilities
+## Ports and infrastructure
 
-| Module | Owns | Must not own |
-|---|---|---|
-| Birth Profile | Validated civil date, optional local time, optional place and IANA timezone, time accuracy, normalization and provenance of coordinates | Sign interpretation, sign lookup tables, implicit midnight or coordinate guesses |
-| Calculation | Calculator registry, requirement checks, orchestration, statuses, normalized results, methodology/version/uncertainty metadata | Personality prose, persistence of anonymous requests, one universal calendar rule |
-| Knowledge | Curated system/sign identifiers, labels, symbols, elements/modalities/rulers when applicable, sourced interpretations, historical context and attribution | Astronomy or calendar arithmetic, inferred birth-chart results |
-| API | HTTP contracts, request constraints, transport mapping, response normalization and stable error format | Domain calculations or content selection rules |
-| Infrastructure adapters | PostgreSQL, optional ephemeris/calendar libraries, coordinate resolution if explicitly introduced | Silently supplying missing birth data or hiding provider errors |
+`PlaceProvider` is the location/time-zone boundary. The included
+`GoogleMapsPlaceProvider` is disabled unless `LOCATION_PROVIDER=google-maps`
+and `GOOGLE_MAPS_API_KEY` are supplied. It makes no calls to public Nominatim.
+It returns safe provider errors without logging submitted query values, API
+keys, or request URLs.
 
-Knowledge is related to, but independent of, calculation output. A result
-classification should use a stable classification identifier; the API can
-enrich it with a knowledge record. If content is unavailable, the calculation
-result remains valid and reports the missing enrichment rather than inventing
-interpretation text.
+`SwissEphemerisEngine` is the calculation boundary. It launches
+`SWISSEPH_EXECUTABLE` with `SWISSEPH_EPHEMERIS_PATH` and has a 30-second
+process timeout. The external engine must be the official compatible
+Swiss Ephemeris `swetest` distribution with its matching data files installed.
+The executable and ephemeris data are deployment dependencies and are not
+bundled in this source tree. No internal ephemeris approximation or sample
+result exists.
 
-### Calculation flow
+The CLI output adapter expects the standard `-fPls` planet-name, longitude,
+speed fields and the `Asc` entry emitted with `-house`. Engine upgrades or
+changes to this output format require parser fixtures and a compatibility
+review. The installed ephemeris files determine date coverage; no broader
+range is promised by this application. Unsupported dates and missing/corrupt
+data surface as service errors.
 
-1. Parse and validate the JSON request and ISO date/time values.
-2. Resolve known system/method/version selections and reject unknown
-   combinations at the API boundary.
-3. Normalize only explicit input. Preserve the local civil date/time, named
-   timezone, location provenance, and accuracy rather than coercing input to
-   UTC prematurely.
-4. For each requested `{systemId, methodId, methodologyVersion}` tuple,
-   resolve exactly one registry entry. Never choose a materially different
-   method or latest version implicitly.
-5. Compare the profile with that method version's declared requirements.
-6. Return `INSUFFICIENT_INPUT` or `UNSUPPORTED` without invoking a calculator
-   when requirements or implementation are unavailable.
-7. Invoke each supported calculator through the common contract. A system
-   failure is isolated to that result; it must not cause another system to
-   return a plausible-looking default.
-8. Attach the calculator's status, completeness, method ID and
-   version, warnings, and limitations; enrich with separately sourced
-   knowledge where available.
-9. Return a calculation response. Do not persist the birth profile or result
-   unless a later, explicit saved-profile feature is designed and consented to.
+## Licensing, distribution, and operations
 
-## Calculator contract (conceptual; no Java types are created here)
+Swiss Ephemeris is offered by Astrodienst under AGPL or a paid professional
+license. This project adopts the AGPL-compatible route; a commercial license
+is not assumed. The project is AGPL-3.0-or-later. Obtain Swiss Ephemeris and
+its data from the official distribution, retain its notices, and verify that
+the chosen version/data distribution is compatible with the deployment's
+AGPL obligations. Operators distributing or hosting a modified service must
+review their corresponding-source and network-use obligations. See
+[`../../THIRD-PARTY-NOTICES`](../../THIRD-PARTY-NOTICES).
 
-`AstrologySystemCalculator` is a useful conceptual port. It should define:
+Google Maps Platform is a separately configured service with its own terms
+and billing. Search text is sent to Google Geocoding; during chart requests,
+the chosen place is resolved and coordinates plus birth date at noon UTC are
+sent to Google Time Zone. Exact local birth time and resulting chart stay in
+the application. Operators must provide any privacy notice/consent required
+for their use.
 
-- A stable `systemId`, `methodId`, and `methodologyVersion`. The registry
-  resolves the full tuple to a calculator and immutable method configuration.
-- A discoverable system descriptor listing its methods. Each method-version
-  descriptor declares required and optional inputs, precision requirements,
-  calendar conventions, timezone and location/coordinate requirements,
-  supported date range, deployment implementation status, and known
-  limitations.
-- Method-specific `InputRequirements` and validation. Requirements belong to
-  the method version, not just the system: two methods under one system may
-  have different inputs and conventions.
-- Input validation that returns structured validation issues rather than
-  throwing for expected missing or invalid data.
-- Calculation execution over a validated/normalized profile and a calculation
-  context (selected method ID/version, ephemeris/calendar provider, and
-  reproducibility inputs).
-- A normalized result containing a stable classification ID, display label
-  (or a knowledge reference), optional structured values, status,
-  completeness, selected system/method/version, warnings, and limitations.
-- Explicit failure mapping. Unexpected exceptions become
-  `CALCULATION_ERROR` for that system, with a correlation identifier and safe
-  public message; internal logs retain diagnostic context without birth data.
+## Validation and known limitations
 
-The orchestration layer depends on this port and registry only. New systems
-or methods are registered by adding their descriptors and module
-implementation, not by changing orchestration branching. System-specific
-date/calendar logic remains within that module or a shared, well-defined
-infrastructure adapter. A method version is immutable; behavior changes
-require a new version.
+Unit tests exercise chart structure, sign/house assignment, nakshatra/pada
+boundaries, DST gaps/overlaps, API validation, error propagation, and
+Swiss Ephemeris output parsing. They do not prove an external binary/data
+installation is valid. A deployment should validate its pinned engine and
+data with independently checked ephemeris fixtures before serving users.
 
-## Status and completeness model
-
-Every requested system/method/version selection produces one result entry,
-including failures. A request may select more than one method for a system
-when the client explicitly wants a comparison.
-
-| `status` | Meaning |
-|---|---|
-| `SUCCESS` | A result was calculated under the declared method. It may still be partial; see `completeness`. |
-| `INSUFFICIENT_INPUT` | The request is structurally valid but omits an input the system requires. |
-| `UNSUPPORTED` | The system is known but has no enabled implementation for this deployment or requested method. |
-| `INVALID_INPUT` | A schema-valid request contains a value rejected by the selected method's domain rules (for example, a date outside that method's supported range). Malformed shape or generally invalid profile fields are top-level HTTP 400 errors instead. |
-| `CALCULATION_ERROR` | A calculator/provider failed unexpectedly or could not produce a result. Never substitute a default classification. |
-
-`completeness` is separate: `COMPLETE`, `PARTIAL`, or `NONE`. `SUCCESS` with
-`PARTIAL` is allowed only when the method deliberately returns a useful,
-qualified subset (for example, a date-only output where an optional chart
-feature needs time). Include warnings that explain omissions. A failed result
-has `NONE`; no output classification should be emitted for a status other than
-`SUCCESS`.
-
-Malformed request/profile structure and invalid common birth fields are
-top-level HTTP validation errors. `INVALID_INPUT` is a per-result status only
-after common validation succeeds, when a selected method rejects a
-schema-valid value under its own domain constraints (such as its supported
-date range). A missing method-required input is `INSUFFICIENT_INPUT`, not
-`INVALID_INPUT`; a known catalogued but disabled/unimplemented method is
-`UNSUPPORTED`.
-
-The deployment implementation status (for example `NOT_IMPLEMENTED`,
-`EXPERIMENTAL`, `AVAILABLE`, `DISABLED`) belongs to a system/method descriptor
-and is not the same as an individual request's calculation status. A system
-may contain methods with different deployment statuses; the system-level
-status is only a catalog summary. A known, catalogued method version that is
-not enabled returns an individual `UNSUPPORTED` result. Do not report the
-current browser-only logic as an available backend calculator.
-
-## Birth profile policy
-
-The canonical API representation is described in
-[`api-contract.md`](./api-contract.md). A civil date is required. Time,
-birthplace, timezone, time accuracy, and time uncertainty are optional profile
-fields; requirements are declared separately for each method version.
-
-- Use `LocalDate`-equivalent semantics for ISO `YYYY-MM-DD`; it is a civil
-  calendar date, not an instant.
-- Use a local ISO time (`HH:mm[:ss]`) only together with an explicit IANA
-  timezone for instant-sensitive calculations. Do not treat a bare local time
-  as UTC or server time.
-- Civil-date methods whose declared calendar uses the supplied civil date
-  directly (for example, a selected fixed civil-date mapping) require no
-  timezone and must not consult the server's default timezone.
-- Astronomical methods require an instant or an explicit interval of possible
-  instants. A time without a timezone does not define either; never replace a
-  missing timezone with UTC, server timezone, or a timezone inferred from a
-  birthplace label.
-- Timezone may be supplied independently of the place. A place name alone
-  does not resolve uniquely to coordinates or a timezone.
-- Place is a user-provided label and, when needed, explicitly provided
-  latitude/longitude/elevation. Do not geocode implicitly or fabricate
-  coordinates from a place string.
-- A genuinely civil-date-based method can proceed from the date alone. An
-  astronomical method with no time may return a qualified partial result only
-  if it evaluates the full civil-date interval under an explicitly declared
-  timezone/calendar interpretation and all possible instants produce the same
-  classification. If it cannot define that interval without a timezone, or
-  the interval crosses a result boundary and the method cannot represent
-  ambiguity, return `INSUFFICIENT_INPUT`.
-- `timeAccuracy` is `EXACT`, `APPROXIMATE`, or `UNKNOWN`. It describes the
-  reported time, not algorithm precision. When `APPROXIMATE`, require a
-  positive bounded `timeUncertaintyMinutes`; the API contract defines the
-  bound. `EXACT` means no additional uncertainty was reported at the supplied
-  representation precision; it does not mean infinite precision or a
-  zero-error astronomical input. `UNKNOWN` means no defensible time interval
-  is known and does not mean midnight.
-- For an approximate time, evaluate the interval centered on the supplied
-  instant after resolving the supplied local time with the explicit timezone
-  and its applicable time-zone rules; uncertainty minutes are elapsed minutes,
-  not wall-clock arithmetic across a daylight-saving transition. If the
-  uncertainty interval crosses a calendar or
-  astronomical boundary, return a documented `PARTIAL` result only if the
-  selected method supports multiple/ambiguous classifications or a
-  method-defined uncertainty result; otherwise return `INSUFFICIENT_INPUT`.
-  Never select one side silently. Record interval handling and time-zone data
-  version for reproducibility.
-- Keep original local inputs and the normalization method available for
-  reproducibility. Avoid logging or retaining them by default.
-
-## Accuracy and reproducibility rules
-
-1. **Boundaries:** Represent astronomical boundaries as instants or
-   half-open intervals `[start, end)` in a declared time scale. Avoid
-   inclusive date-range tables as an engine of record. Resolve exact crossings
-   under a declared timezone and boundary policy. When input accuracy straddles
-   a boundary, mark uncertainty/partial rather than picking a side arbitrarily.
-2. **Leap years and civil calendars:** Validate actual Gregorian dates,
-   including leap days. Declare proleptic Gregorian handling for historic
-   dates; do not silently claim it is the historical local calendar. Identify
-   Julian/Gregorian transition conventions where relevant.
-3. **Timezone:** Use IANA timezone identifiers and a versioned timezone
-   database. Local historical offsets/DST can be uncertain or unavailable;
-   preserve that uncertainty. Convert to an instant only after resolving
-   explicit zone and local time.
-4. **Calendar conversions:** Each system owns its calendar choice, epoch,
-   correlation, day boundary, leap/intercalation policy, region, and source.
-   Do not share a Chinese, Tibetan, Mayan, or Aztec conversion merely because
-   they are cyclical calendars.
-5. **Astronomy:** Specify geocentric/topocentric frame, apparent/mean
-   coordinates, ecliptic/equinox, ayanamsa where relevant, time scale, and
-   precision. A high-precision planet position does not establish a tradition's
-   interpretive or historical validity.
-6. **Ephemerides:** Pin library release, data set, configuration, and coverage.
-   Surface missing/out-of-range data; do not silently switch to a lower-grade
-   ephemeris.
-7. **Reproducibility:** Every result includes a methodology ID and immutable
-   version, calculator version, relevant calendar/correlation or ephemeris
-   release, and input-normalization metadata. A methodology change creates a
-   new version; never rewrite prior meanings under the same version.
-8. **Tests:** Maintain golden/reference cases for boundary instants, just
-   before/at/after boundaries, leap dates, timezone transitions, supported
-   calendar epochs, and unsupported input. Record the source and uncertainty
-   for each expected value. Cross-check astronomy against independent
-   ephemerides/reference tools; do not use the legacy frontend output as the
-   truth oracle.
-
-### Astronomy library evaluation
-
-- **Swiss Ephemeris:** Its official documentation describes a high-precision
-  ephemeris, Julian-day/time-scale inputs, and downloadable ephemeris data. It
-  is a candidate for astrology-oriented planetary calculations. The project
-  states a dual license: AGPL or a commercial Swiss Ephemeris Professional
-  License, with obligations that can affect the whole application or public
-  service. Legal review and deployment/data-file review are prerequisites;
-  do not add it until license choice is approved.
-  [Official overview and licensing](https://www.astro.com/swisseph/swephinfo_e.htm)
-  · [Programmer's manual](https://www.astro.com/swisseph/swephprg.htm)
-- **Astronomy Engine:** The upstream project documents Sun, Moon, planet,
-  coordinate and event calculations, roughly ±1 arcminute stated accuracy,
-  tests against NOVAS/JPL Horizons, and an MIT license. It has Kotlin alongside
-  JavaScript, C, C#, and Python support; verify present JVM interoperability,
-  release, and exact API before selection. Its stated precision and model
-  coverage may suit some use cases but should not be assumed sufficient for
-  every sign-boundary or historical question.
-  [Upstream project](https://github.com/cosinekitty/astronomy)
-  · [MIT license](https://raw.githubusercontent.com/cosinekitty/astronomy/master/LICENSE)
-
-Neither library performs the historical research, calendar-convention
-selection, or interpretation that these traditions require. Initial date-only
-calendar modules do not necessarily need an astronomical dependency.
-
-## Persistence
-
-Keep calculation execution dynamic by default. Persist curated, versioned
-system descriptors, knowledge entries, interpretation text, source references,
-and methodology descriptions where they need editorial management and
-publication history. Seed/static resources are also reasonable for a small,
-read-only initial catalog; make that decision based on editorial workflow, not
-because JPA is already on the classpath.
-
-Do not persist anonymous birth profiles or every calculation. In a later
-explicit saved-chart feature, store profiles/results only with clear user
-consent, retention/deletion rules, access controls, and a versioned calculation
-snapshot. A reproducibility record must not require retaining unnecessary
-personal data; decide whether it stores exact input, a user-owned profile
-reference, or a redacted audit record. Never use raw birth details in
-application logs or analytics.
+Lagna precision depends on the accuracy of reported birth time and the
+provider's historical timezone data; the API currently requires a time but
+does not quantify user-reported uncertainty. Provider changes and Swiss
+Ephemeris/data updates are operationally significant and must be reviewed.

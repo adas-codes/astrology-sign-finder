@@ -18,6 +18,13 @@ public class GlobalExceptionHandler {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(GlobalExceptionHandler.class);
 
+  @ExceptionHandler(ApiProblemException.class)
+  public ResponseEntity<ApiErrorResponse> handleApiProblem(
+      ApiProblemException exception,
+      HttpServletRequest request) {
+    return errorResponse(exception.getStatus(), exception.getMessage(), request);
+  }
+
   @ExceptionHandler(MethodArgumentNotValidException.class)
   public ResponseEntity<ApiErrorResponse> handleValidation(
       MethodArgumentNotValidException exception,

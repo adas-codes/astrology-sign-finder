@@ -178,6 +178,10 @@ observer ephemeris, quantity 31, `TIME_TYPE=UT`, Gregorian dates. The response
 identifies source `DE441` and defines `ObsEcLon` as apparent
 observer-centered IAU76/80 ecliptic-of-date longitude including light time,
 gravitational deflection, and stellar aberration. Accessed 2026-11-03.
+JPL's DE440/DE441 paper states that DE441 covers a longer interval but is less
+accurate than DE440 for the current century. These fixtures preserve the
+Horizons response/source selected at retrieval time; they do not claim DE441
+is the best available current-century ephemeris.
 
 Reproducible monthly sample request:
 

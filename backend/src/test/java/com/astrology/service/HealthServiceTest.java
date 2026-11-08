@@ -9,12 +9,12 @@ class HealthServiceTest {
 
   @Test
   void returnsApplicationHealthAndVersion() {
-    HealthService healthService = new HealthService("astrology-sign-finder", "0.1.0-SNAPSHOT");
+    HealthService healthService = new HealthService("vedic-birth-chart", "0.1.0-SNAPSHOT");
 
     HealthResponse response = healthService.getStatus();
 
     assertThat(response.status()).isEqualTo("UP");
-    assertThat(response.applicationName()).isEqualTo("astrology-sign-finder");
+    assertThat(response.applicationName()).isEqualTo("vedic-birth-chart");
     assertThat(response.version()).isEqualTo("0.1.0-SNAPSHOT");
   }
 }

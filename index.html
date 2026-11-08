@@ -3,239 +3,92 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Zodiac Systems Finder</title>
-    <meta
-      name="description"
-      content="Analyze a birth date across Western, Vedic, True Sidereal, Chinese, BaZi, Tibetan, Mayan, Aztec, Native American, Celtic, Egyptian, and Burmese zodiac systems."
-    />
+    <meta name="api-base-url" content="http://localhost:8080/api/v1" />
+    <title>Vedic Birth Chart</title>
+    <meta name="description" content="Calculate a Vedic D1 birth chart with Lahiri ayanamsa and whole-sign houses." />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link
-      href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600;700&family=DM+Sans:wght@400;500;600;700&display=swap"
-      rel="stylesheet"
-    />
+    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600;700&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet" />
     <link rel="stylesheet" href="style.css" />
   </head>
   <body>
-    <a class="skip-link" href="#birth-form">Skip to birth date form</a>
+    <a class="skip-link" href="#birth-form">Skip to birth details</a>
     <div class="page-shell">
       <nav class="site-nav glass-panel" aria-label="Main navigation">
-        <a class="brand" href="#" aria-label="Celestial Atlas home">
+        <a class="brand" href="#" aria-label="Vedic Birth Chart home">
           <span class="brand-mark" aria-hidden="true">✦</span>
-          <span>CELESTIAL <span class="brand-light">ATLAS</span></span>
+          <span>VEDIC <span class="brand-light">CHART</span></span>
         </a>
-        <a class="nav-link" href="#birth-form">Explore your chart <span aria-hidden="true">↗</span></a>
+        <a class="nav-link" href="#birth-form">Create your chart <span aria-hidden="true">↗</span></a>
       </nav>
 
       <main class="app-card glass-panel">
         <header class="header">
           <div class="hero-orbit" aria-hidden="true">
-            <span class="orbit orbit-one"></span>
-            <span class="orbit orbit-two"></span>
-            <span class="orbit-core">✧</span>
-            <span class="orbit-star star-one">✦</span>
-            <span class="orbit-star star-two">✧</span>
-            <span class="orbit-star star-three">·</span>
+            <span class="orbit orbit-one"></span><span class="orbit orbit-two"></span>
+            <span class="orbit-core">✧</span><span class="orbit-star star-one">✦</span>
+            <span class="orbit-star star-two">✧</span><span class="orbit-star star-three">·</span>
           </div>
-          <p class="eyebrow"><span class="eyebrow-rule"></span> A FIELD GUIDE TO THE COSMOS <span class="eyebrow-rule"></span></p>
-          <h1>Read the <em>stars</em><br />written in your story.</h1>
-          <p class="subtitle">
-            One birth date. Twelve traditions. Discover the celestial maps that have guided cultures across time.
-          </p>
-          <div class="hero-note">
-            <span aria-hidden="true">☾</span>
-            <span>A personal journey through ancient skies</span>
-            <span aria-hidden="true">✦</span>
-          </div>
+          <p class="eyebrow"><span class="eyebrow-rule"></span> VEDIC JYOTIṢA <span class="eyebrow-rule"></span></p>
+          <h1>Your birth sky,<br /><em>carefully mapped.</em></h1>
+          <p class="subtitle">A complete D1 / Rāśi chart calculated for your birth date, exact local time, and birthplace.</p>
+          <div class="hero-note"><span aria-hidden="true">☾</span><span>Lahiri sidereal • Geocentric • Whole-sign houses</span><span aria-hidden="true">✦</span></div>
         </header>
 
         <section class="birth-panel glass-panel" aria-labelledby="birth-prompt">
           <div class="panel-heading">
             <span class="panel-index">01</span>
-            <div>
-              <p class="panel-kicker">BEGIN YOUR EXPLORATION</p>
-              <h2 id="birth-prompt">When did your story begin?</h2>
-            </div>
+            <div><p class="panel-kicker">CHART DETAILS</p><h2 id="birth-prompt">Where and when were you born?</h2></div>
           </div>
-          <form id="dob-form" class="dob-form" novalidate>
-            <label for="dob">Your date of birth</label>
-            <div class="input-row" id="birth-form">
-              <div class="date-input-wrap">
-                <span class="input-icon" aria-hidden="true">◷</span>
-                <input
-                  type="text"
-                  id="dob"
-                  name="dob"
-                  placeholder="DD/MM/YYYY"
-                  inputmode="numeric"
-                  autocomplete="bday"
-                  aria-label="Date of birth in DD/MM/YYYY format"
-                  required
-                />
+          <form id="birth-form" class="dob-form" novalidate>
+            <div class="form-fields">
+              <div class="field">
+                <label for="birth-date">Birth date</label>
+                <input id="birth-date" name="dateOfBirth" type="date" autocomplete="bday" required />
               </div>
-              <button type="submit"><span>Reveal my signs</span><span class="button-arrow" aria-hidden="true">↗</span></button>
+              <div class="field">
+                <label for="birth-time">Exact local birth time</label>
+                <input id="birth-time" name="timeOfBirth" type="time" step="1" required />
+              </div>
+              <div class="field place-field">
+                <label for="birthplace">Birthplace</label>
+                <input id="birthplace" name="birthplace" type="text" autocomplete="off" placeholder="Search city, region, or address" aria-describedby="place-help" required />
+                <div id="place-suggestions" class="place-suggestions hidden" role="listbox" aria-label="Birthplace search results"></div>
+                <input id="place-id" type="hidden" />
+                <span id="place-help" class="field-help">Place search requires a configured provider. Choose a result to resolve its coordinates.</span>
+              </div>
             </div>
-            <p class="form-hint"><span aria-hidden="true">✧</span> Enter your date in day / month / year format</p>
+            <button type="submit" id="chart-submit"><span>Calculate D1 chart</span><span class="button-arrow" aria-hidden="true">↗</span></button>
+            <p class="form-hint">The local time zone is resolved from the selected birthplace; ambiguous or nonexistent clock times are rejected.</p>
+            <p class="privacy-notice">Place searches and the selected birthplace/date used for time-zone resolution are sent to the configured Google Maps Platform provider. Birth details are processed for this calculation only and are not saved by this application. Use only after reviewing your provider and privacy terms.</p>
+            <p id="form-message" class="form-message" role="status" aria-live="polite"></p>
           </form>
         </section>
 
         <section id="results" class="results hidden" aria-live="polite">
-          <div class="traditions-heading" id="traditions">
-            <div>
-              <p class="section-kicker">A SKY FULL OF PERSPECTIVES</p>
-              <h2>Explore the traditions</h2>
-            </div>
-            <span class="traditions-count">12 SYSTEMS <span aria-hidden="true">✦</span></span>
+          <div class="traditions-heading">
+            <div><p class="section-kicker">D1 • RĀŚI CHART</p><h2>Your sidereal birth chart</h2></div>
+            <span class="traditions-count">VEDIC JYOTIṢA <span aria-hidden="true">✦</span></span>
           </div>
           <div class="result-overview glass-panel">
-            <div class="overview-symbol" aria-hidden="true">☾</div>
-            <div>
-              <p class="label">YOUR CELESTIAL PROFILE</p>
-              <h2 id="birth-date-display">—</h2>
-            </div>
-            <span class="overview-note">A reading across twelve traditions</span>
+            <div class="overview-symbol" aria-hidden="true">☉</div>
+            <div><p class="label">BIRTH DETAILS</p><h2 id="birth-summary">—</h2></div>
+            <span id="method-summary" class="overview-note">Lahiri • Whole sign</span>
           </div>
-          <div id="result-grid" class="result-grid">
-            <article class="zodiac-card western">
-              <div class="card-header">
-                <span class="card-glyph" aria-hidden="true">☉</span>
-                <h3 class="system-name">Western Tropical Zodiac</h3>
-                <span class="system-badge">Western</span>
-              </div>
-              <h4 id="western-name" class="sign-name">—</h4>
-              <p id="western-date-range" class="range-line"></p>
-              <p id="western-description" class="description"></p>
-            </article>
-
-            <article class="zodiac-card vedic">
-              <div class="card-header">
-                <span class="card-glyph" aria-hidden="true">☽</span>
-                <h3 class="system-name">Vedic Sidereal Zodiac</h3>
-                <span class="system-badge">Vedic</span>
-              </div>
-              <h4 id="vedic-name" class="sign-name">—</h4>
-              <p id="vedic-date-range" class="range-line"></p>
-              <p id="vedic-description" class="description"></p>
-            </article>
-
-            <article class="zodiac-card true-sidereal">
-              <div class="card-header">
-                <span class="card-glyph" aria-hidden="true">✧</span>
-                <h3 class="system-name">True Sidereal / Astronomical Zodiac</h3>
-                <span class="system-badge">Astronomical</span>
-              </div>
-              <h4 id="true-sidereal-name" class="sign-name">—</h4>
-              <p id="true-sidereal-date-range" class="range-line"></p>
-              <p id="true-sidereal-description" class="description"></p>
-            </article>
-
-            <article class="zodiac-card chinese">
-              <div class="card-header">
-                <span class="card-glyph" aria-hidden="true">☯</span>
-                <h3 class="system-name">Chinese Zodiac</h3>
-                <span class="system-badge">East Asian</span>
-              </div>
-              <h4 id="chinese-name" class="sign-name">—</h4>
-              <p id="chinese-date-range" class="range-line"></p>
-              <p id="chinese-description" class="description"></p>
-            </article>
-
-            <article class="zodiac-card bazi">
-              <div class="card-header">
-                <span class="card-glyph" aria-hidden="true">⌘</span>
-                <h3 class="system-name">BaZi (Four Pillars)</h3>
-                <span class="system-badge">Chinese</span>
-              </div>
-              <h4 id="bazi-name" class="sign-name">—</h4>
-              <p id="bazi-date-range" class="range-line"></p>
-              <p id="bazi-description" class="description"></p>
-            </article>
-
-            <article class="zodiac-card tibetan">
-              <div class="card-header">
-                <span class="card-glyph" aria-hidden="true">༄</span>
-                <h3 class="system-name">Tibetan Zodiac</h3>
-                <span class="system-badge">Tibetan</span>
-              </div>
-              <h4 id="tibetan-name" class="sign-name">—</h4>
-              <p id="tibetan-date-range" class="range-line"></p>
-              <p id="tibetan-description" class="description"></p>
-            </article>
-
-            <article class="zodiac-card mayan">
-              <div class="card-header">
-                <span class="card-glyph" aria-hidden="true">◈</span>
-                <h3 class="system-name">Mayan Tzolkʼin</h3>
-                <span class="system-badge">Mesoamerican</span>
-              </div>
-              <h4 id="mayan-name" class="sign-name">—</h4>
-              <p id="mayan-date-range" class="range-line"></p>
-              <p id="mayan-description" class="description"></p>
-            </article>
-
-            <article class="zodiac-card aztec">
-              <div class="card-header">
-                <span class="card-glyph" aria-hidden="true">◉</span>
-                <h3 class="system-name">Aztec Tonalpohualli</h3>
-                <span class="system-badge">Mesoamerican</span>
-              </div>
-              <h4 id="aztec-name" class="sign-name">—</h4>
-              <p id="aztec-date-range" class="range-line"></p>
-              <p id="aztec-description" class="description"></p>
-            </article>
-
-            <article class="zodiac-card native">
-              <div class="card-header">
-                <span class="card-glyph" aria-hidden="true">⌁</span>
-                <h3 class="system-name">Native American Earth Astrology</h3>
-                <span class="system-badge">Earth tradition</span>
-              </div>
-              <h4 id="native-name" class="sign-name">—</h4>
-              <p id="native-date-range" class="range-line"></p>
-              <p id="native-description" class="description"></p>
-            </article>
-
-            <article class="zodiac-card celtic">
-              <div class="card-header">
-                <span class="card-glyph" aria-hidden="true">♧</span>
-                <h3 class="system-name">Celtic Tree Zodiac</h3>
-                <span class="system-badge">Celtic</span>
-              </div>
-              <h4 id="pagan-name" class="sign-name">—</h4>
-              <p id="pagan-date-range" class="range-line"></p>
-              <p id="pagan-description" class="description"></p>
-            </article>
-
-            <article class="zodiac-card egyptian">
-              <div class="card-header">
-                <span class="card-glyph" aria-hidden="true">☥</span>
-                <h3 class="system-name">Ancient Egyptian Decan System</h3>
-                <span class="system-badge">Ancient</span>
-              </div>
-              <h4 id="egyptian-name" class="sign-name">—</h4>
-              <p id="egyptian-date-range" class="range-line"></p>
-              <p id="egyptian-description" class="description"></p>
-            </article>
-
-            <article class="zodiac-card burmese">
-              <div class="card-header">
-                <span class="card-glyph" aria-hidden="true">☼</span>
-                <h3 class="system-name">Burmese Zodiac / Mahabote</h3>
-                <span class="system-badge">Southeast Asian</span>
-              </div>
-              <h4 id="burmese-name" class="sign-name">—</h4>
-              <p id="burmese-date-range" class="range-line"></p>
-              <p id="burmese-description" class="description"></p>
-            </article>
+          <div id="house-chart" class="house-chart" aria-label="Whole-sign house chart"></div>
+          <div class="positions-panel glass-panel">
+            <div class="positions-heading"><h3>Graha positions</h3><span>Sidereal longitude · Nakshatra · Pada</span></div>
+            <div class="table-wrap">
+              <table>
+                <thead><tr><th scope="col">Point</th><th scope="col">Sign</th><th scope="col">House</th><th scope="col">Longitude</th><th scope="col">Nakshatra</th><th scope="col">Pada</th></tr></thead>
+                <tbody id="positions-body"></tbody>
+              </table>
+            </div>
           </div>
         </section>
-        <footer class="site-footer">
-          <span>AN ATLAS OF CELESTIAL TRADITIONS</span>
-          <span>Traditions, not predictions <span aria-hidden="true">·</span> For reflection and discovery</span>
-        </footer>
+        <footer class="site-footer"><span>VEDIC D1 / RĀŚI <span>✦</span> LAHIRI AYANĀṂŚA</span><span>Calculated with Swiss Ephemeris · Birth details are not stored</span></footer>
       </main>
     </div>
-
     <script src="script.js"></script>
   </body>
 </html>

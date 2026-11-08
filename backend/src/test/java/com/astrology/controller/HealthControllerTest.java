@@ -18,7 +18,7 @@ import org.springframework.test.web.servlet.MockMvc;
 @WebMvcTest(HealthController.class)
 @Import({HealthService.class, CorsConfig.class})
 @TestPropertySource(properties = {
-    "spring.application.name=astrology-sign-finder",
+    "spring.application.name=vedic-birth-chart",
     "app.version=0.1.0-test",
     "app.cors.allowed-origins=http://localhost:8000"
 })
@@ -32,7 +32,7 @@ class HealthControllerTest {
     mockMvc.perform(get("/api/health"))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.status").value("UP"))
-        .andExpect(jsonPath("$.applicationName").value("astrology-sign-finder"))
+        .andExpect(jsonPath("$.applicationName").value("vedic-birth-chart"))
         .andExpect(jsonPath("$.version").value("0.1.0-test"));
   }
 

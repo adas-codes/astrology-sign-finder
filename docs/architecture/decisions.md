@@ -19,30 +19,47 @@ runtime behavior.
 | A-10 | Separate historical/traditional methods from modern popular reconstructions in system metadata and user-facing language. | Prevents modern date tables from acquiring unsupported historical authority. |
 | A-11 | For `timeAccuracy: APPROXIMATE`, require a positive bounded `timeUncertaintyMinutes` and evaluate the full interval against method boundaries. | A label alone does not quantify the uncertainty; a boundary-crossing interval must not be collapsed to a fabricated point result. |
 
+## M1.3 methodology decisions
+
+These are research decisions about named methodology candidates, not deployment
+availability. Their backend implementation status remains `NOT_IMPLEMENTED`.
+
+| System / method | Version | Research decision | Decision and implementation gate |
+|---|---|---|---|
+| `western-tropical` / `western-tropical-solar-sign` | `1.0.0` | `READY_WITH_LIMITATIONS` | Geocentric apparent solar longitude and a reproducible JPL comparison corpus are defined. Production ephemeris/library, licensing, convention matching, boundary error budget, and proposed range endpoint evidence remain to be approved. See [`western-tropical-solar-sign.md`](../research/western-tropical-solar-sign.md). |
+| `chinese-zodiac` / `chinese-zodiac-year-animal` | `1.0.0` | `READY_WITH_LIMITATIONS` | Implement only the HKO published Gregorian-lunar civil-date convention, 1901–2100. This does not select a local new-moon instant or a BaZi/Li Chun year pillar. Review animal/branch knowledge and preserve HKO's future-table caveat before public release. See [`chinese-zodiac-year-animal.md`](../research/chinese-zodiac-year-animal.md). |
+
 ## Open decisions before implementation
 
 1. **Product scope and first release:** Which systems are in the first
    production slice? A credible thin slice should prefer a small number of
    sourced, testable methods over exposing all 12 as equally reliable.
-2. **Western calculation definition:** Is the initial result just geocentric
-   Sun sign, or a full chart? Which coordinate frame, apparent/mean longitude,
-   ephemeris, and date-only ambiguity UX are required?
+2. **Western production engine and release gate:** The first method is
+   geocentric apparent Sun sign, not a full chart. Choose a production
+   ephemeris/JVM binding and license; pin matching coordinate corrections,
+   time scales, model error budget, supported date range, and ambiguity UX.
+   The proposed 1900–2100 endpoints and exact ingress roots are not yet
+   validated golden vectors.
 3. **Vedic/Jyotish settings:** Which school and ayanamsa are supported? Is the
    first deliverable only solar rashi or a chart? Which location and house
    conventions apply?
 4. **Meaning of “True Sidereal”:** Does the product mean a 12-part sidereal
    zodiac, or actual IAU constellation membership? These are distinct
    computations and should likely have different method IDs and user labels.
-5. **Chinese Zodiac boundary:** Use Lunar New Year or a solar-term boundary
-   for this product? Which regional calendar source and historic coverage?
+5. **Chinese Zodiac scope:** The researched method uses HKO's published
+   Gregorian date for the first lunar month (1901–2100). Decide whether a
+   separate local-instant calendar variant is needed. A Li Chun year-pillar
+   method must remain separate and is not included in this method.
 6. **BaZi rules:** Which school governs solar-term month/year changes,
    Li Chun, hour pillars, day boundary, and apparent solar time?
 7. **Tibetan method:** Which Tibetan calendar tradition/source and conversion
    tables are in scope? How are repeated/omitted dates, intercalations, and
    local boundaries handled?
-8. **Mayan and Aztec/Mexica conversion:** Which independently sourced
-   correlation constants, naming conventions, proleptic calendar and day
-   boundary are accepted? Who reviews cultural/historical claims?
+8. **Mayan and Aztec/Mexica conversion:** Mayan correlation evidence and
+   method readiness are recorded in the M1.3 research note; any accepted
+   correlation must be explicit and versioned. Aztec/Mexica requires separate
+   research, source review, calendar conversion, naming conventions and day
+   boundary. Who reviews cultural/historical claims?
 9. **Native Earth category:** Should the generic current entry be removed,
    replaced by a specific sourced/community-reviewed interpretation, or kept
    visible as unsupported? Do not resolve this by inventing a universal
@@ -72,7 +89,8 @@ runtime behavior.
 
 ### M1.3 — Resolve methods and contract
 
-- Answer the method/scope questions above for a small first slice.
+- Freeze the M1.3 researched method IDs, versions, decisions and
+  method-specific limitations below; keep unresolved candidates unavailable.
 - Publish stable system IDs, method IDs and immutable methodology versions;
   expose per-version inputs, precision, calendar, timezone, location, date
   range, status, limitations, and error semantics.
@@ -98,10 +116,11 @@ runtime behavior.
 
 ### M1.5 — First calculation vertical slice
 
-- Implement one well-scoped system with a frozen method version and verified
-  references. Prefer a date-only calendar method only if its calendar source
-  and correlation are resolved; otherwise choose a precisely specified
-  Western solar calculation.
+- Implement one well-scoped researched method with a frozen method version
+  and verified references. The HKO Chinese year-animal method is the lowest
+  dependency-risk first slice under its published-table convention. The
+  Western astronomical method should follow after engine/license selection,
+  convention comparison, endpoint evidence, and a refined ingress fixture.
 - Add boundary, leap-year, timezone, uncertainty-interval, invalid-input, and
   reproducibility tests.
 - Compare astronomical results to independent references when applicable.
